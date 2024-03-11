@@ -63,13 +63,12 @@
 
              (swap! state/rendering assoc-in [layout program id] true)))))
 
-(reg-fx :delete
-       (fn delete-entity!
-         [entity-keys]
-         ;; TODO update path must be obtainable from entity-key
-         ;;      - Refactor state/rendering to vaoID->programID->entityIDS
-         ;;      - Add a global registery for vaos, programs and entities data (integrant system)
-         (apply swap! state/rendering update-in [:vao/static :default] dissoc entity-keys)))
+
+;; (reg-fx :delete
+;;        (fn delete-entity!
+;;          [entity-keys]
+;;          ;; TODO update path must be bal registery for vaos, programs and entities data (integrant system)
+;;          (apply swap! state/rendering update-in [:vao/static :default] dissoc entity-keys)))
 
 (reg-fx :delete-all
        (fn delete-all [_]

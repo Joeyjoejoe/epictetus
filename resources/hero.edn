@@ -1,9 +1,8 @@
 {:program  :sprite
- :position [0.0 0.0 -50.0]
- :scale    0.15
+ :position [0.0 0.0 0.0]
+ :scale    0.05
  :anim/duration  1.12
  :anim/frames    4
- :anim/start     0.0
  :assets   {:textures ["textures/hero.png"]
             :vertices [{:coordinates [0.0 0.0 0.0]   :color [1.0 0.0 1.0] :texture [[0.0 0.0]
                                                                                     [0.362318841 0.0]

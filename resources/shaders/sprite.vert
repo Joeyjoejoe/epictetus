@@ -27,3 +27,6 @@ void main()
   textCoord = animCoords[animIndex];
   gl_Position = projection * view * model * vec4(vLocal, 1.0);
 }
+
+// x° 0 20
+// y° 340 [360 0] 20

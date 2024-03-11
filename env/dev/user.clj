@@ -8,21 +8,72 @@
 
 
   (:import (org.lwjgl.glfw GLFW)
-           (org.joml Matrix4f)
+           (org.joml Matrix4f Vector3f)
            (org.lwjgl BufferUtils)
            (org.lwjgl.opengl GL45))
   )
 
 
+;; TODO Poor naming
+(defn time-back-and-forth
+  [t duration]
+  (let [cnt    (/ t duration)
+        elapse (mod t duration)
+        percent (/ (* elapse 100.0)
+                   duration)]
+    (/ (if (even? (int cnt))
+         percent
+         (- 100 percent))
+       100)))
+
+
+
+(defn rotate-around
+  [mat angle]
+  (let [center (Vector3f. 1.0 0.0 0.0)]
+    (-> mat
+        (.translate center)
+        (.rotateY (. Math toRadians angle))
+        (.translate (.negate center)))))
+
+
+
+
+;;  Vector3f center = new Vector3f(0.0f, 3.0f, 4.0f);
+;;  Vector3f pointToRotate = new Vector3f(0.0f, 4.0f, 4.0f);
+;;  new Matrix4f().translate(center)
+;;                .rotate((float) Math.toRadians(90.0f), 1.0f, 0.0f, 0.0f)
+;;                .translate(center.negate())
+;;                .transformPosition(pointToRotate);
+
+;;
+;;   (let [[x  y]  (:position entity)
+;;         scale   (or (:scale entity) 1.0)
+;;         [xc yc] (mapv #(* % scale) center)
+;;         c  (Math/cos (. Math toRadians angle))
+;;         s  (Math/sin (. Math toRadians angle))
+;;         xt (- x xc)
+;;         yt (- y yc)
+;;         xr (- (* xt c) (* yt s))
+;;         yr (+ (* xt s) (* yt c))
+;;         xf (+ xr xc)
+;;         yf (+ yr yc)]))
+
 ;; Camera uniforms
 (reg-eu :model
         (fn model-matrix [db entities entity]
-          (let [{:keys [position scale], :or {scale 1.0}} entity
+          (let [{:keys [position rotation scale], :or {scale 1.0}} entity
+                t (GLFW/glfwGetTime)
                 [x y z] position
+                [rx ry rz] rotation
                 buffer (BufferUtils/createFloatBuffer 16)]
+
             (-> (Matrix4f.)
                 (.translate x y z)
-                (.scale scale scale scale)
+                (rotate-around (* (time-back-and-forth t 0.5) 15.0))
+               ;;  (.rotateY (time-back-and-forth t 0.5))
+               ;;  (.rotateX (time-back-and-forth t 0.9))
+                (.scale scale scale 1.0)
                 (.get buffer)))))
 
 (reg-u :view
@@ -75,21 +126,21 @@
               (GL45/glBindTextureUnit 0 (first textures))
               0))))
 
-(reg-eu [:sprite :animIndex]
+(reg-eu :animIndex
         (fn [db entities entity]
+          (if-let [start (:anim/start entity)]
+            (let [{:keys [:anim/duration :anim/frames]} entity
+                  now (get-in db [:loop/iteration :time/current])
+                  frame-duration (/ duration frames)
+                  elapsed        (- now start)
+                  frame-nth      (Math/floor (/ elapsed frame-duration))
 
-          (let [now (get-in db [:loop/iteration :time/current])
-                {:keys [:anim/duration :anim/frames :anim/start]} entity
-                 frame-duration (/ duration frames)
-                 elapsed        (- now (or start 0.0))
-                 frame-nth   (-> (/ elapsed frame-duration)
-                                 (Math/floor))]
-
-              ;; TODO find algo for "backward cycle" animations
-              ;; 0 1 2
-              (-> frame-nth
-                  (mod frames)
-                  int))))
+                  n (-> frame-nth
+                        (mod frames)
+                        int)]
+              (println :index n)
+              n)
+            6)))
 
 (reg-event
   :mouse/position
@@ -103,7 +154,7 @@
 
 (reg-event
   [:press :space]
-  [(cofx/inject :edn/load "hero.edn")]
+  [(cofx/inject :edn/load "hero-2.edn")]
   (fn render-level [{model :edn/load} fx]
     (-> fx
         (update :render conj [:hero model]))))
@@ -137,3 +188,46 @@
           (update :render conj random-cube)))))
 
 
+(reg-event [:press :s]
+           (fn move-right [_ fx]
+             (let [[x y z] (get-in @state/entities [:hero :position])]
+               (assoc fx :entity/set [:hero {:motion   [:walk :right]
+                                             :position [x y (+ z 0.15)]
+                                             :anim/start (GLFW/glfwGetTime)}]))))
+(reg-event [:repeat :s]
+           (fn move-right [_ fx]
+             (let [[x y z] (get-in @state/entities [:hero :position])]
+               (assoc fx :entity/set [:hero {:position [(- x 0.005) (- y 0.005) (+ z 0.15)]}]))))
+
+(reg-event [:release :s]
+           (fn move-left [_ fx]
+             (assoc fx :entity/set [:hero {:motion nil
+                                           :anim/start nil}])))
+(comment
+
+  (defn spriteCoords [sprite row col]
+    (let [{:keys [fwidth fheight w h]} sprite
+          x (/ (* col fwidth) w)
+          y (/ (* row fheight) h)]
+      [x y]))
+
+  (let [w         1142
+        h         635
+        row       2
+        cols      [0 1 2 3 4 5 6 7 8 9 10 11]
+        fwidth     (/ 95.16 w)
+        fheight    (/ 158.75 h)
+        A (mapv   #(spriteCoords {:fwidth fwidth :fheight fheight :w w :h h} row %) cols)
+        B (reduce #(conj %1 [(first %2) (+ fheight (last %2))]) [] A)
+        C (reduce #(conj %1 [(+ fwidth (first %2)) (+ fheight (last %2))]) [] A)
+        D (reduce #(conj %1 [(+ fwidth (first %2)) (last %2)]) [] A)]
+    D)
+
+  state/db
+
+  state/system
+
+  (get @state/entities :hero)
+
+
+  )

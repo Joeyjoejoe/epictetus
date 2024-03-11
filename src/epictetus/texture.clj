@@ -51,3 +51,11 @@
               (mapv #(or (get @text-cache %)
                          (load-from-path %)) texture-paths))
     entity))
+
+
+;; (reg-tex :textIndex0
+;;          {:wrap/s :clamp/edge ;; #{:clamp/edge :clamp/border :repeat :mirror/repeat :mirror/clamp-to-edge}
+;;           :wrap/t :clamp/edge
+;;           :filter/min :nearest
+;;           :filter/mag :nearest})
+;;
